@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Take Attendance for {{ session }}</title>
+
+    <!-- Handsontable CSS and JS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@8.4.0/dist/handsontable.full.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@8.4.0/dist/handsontable.full.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        #attendanceTable {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Take Attendance for {{ session }}</h1>
+
+<form id="attendanceForm" method="post">
+    {% csrf_token %}
+    <div id="attendanceTable"></div>
+    <input type="hidden" name="attendance_data" id="attendanceData">
+    <button type="submit">Save Attendance</button>
+</form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var attendanceData = {{ attendance_data|safe }};
+        var sessionRate = 10;  // Define the rate per session
+
+        var container = document.getElementById('attendanceTable');
+        var hot = new Handsontable(container, {
+            data: attendanceData,
+            colHeaders: ['Member ID', 'Member Name', 'Total Money'],
+            columns: [
+                { data: 0, type: 'text', readOnly: true },  // Member ID (hidden, but required for submission)
+                { data: 1, type: 'text', readOnly: true },  // Combined First and Last Name (read-only)
+                { data: 2, type: 'numeric' }  // Total money to be input by the admin
+            ],
+            columnSorting: true,  // Enable sorting for all columns
+            sortIndicator: true,  // Show the sorting indicator
+            initialSort: [
+                { column: 1, sortOrder: 'asc' }  // Sort by the "Member Name" column (column index 1) in ascending order
+            ]
+        });
+
+        // Submit form data
+        document.getElementById('attendanceForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            // Serialize the Handsontable data
+            var attendanceData = hot.getData();
+
+            console.log("Attendance Data: ", attendanceData);
+
+            var filteredData = attendanceData.filter(function(row) {
+                return row[2] > 0;  // Only include rows where total_money > 0
+            });
+
+            // Check if there is any data to submit
+            if (filteredData.length === 0) {
+                alert("No data to submit. All entries have total money set to 0.");
+                return;
+            }
+
+            document.getElementById('attendanceData').value = JSON.stringify(filteredData);
+
+            // Submit the form
+            this.submit();
+        });
+    });
+</script>
+
+</body>
+</html>
