@@ -2,6 +2,14 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from attendance.models import Session, MemberSessionLink, Member
 
+
+def session_list(request):
+    # Fetch all sessions, or you can filter them based on your needs
+    sessions = Session.objects.all()
+    
+    return render(request, 'attendance/session_list.html', {'sessions': sessions})
+
+
 def take_attendance(request, session_id):
     session = get_object_or_404(Session, id=session_id)
 
@@ -26,7 +34,7 @@ def take_attendance(request, session_id):
                     defaults={'total_money': total_money}
                 )
 
-        return JsonResponse({'status': 'success'})
+        return redirect('session_list')
 
     name_prefix = ''
     attendance_data = []
