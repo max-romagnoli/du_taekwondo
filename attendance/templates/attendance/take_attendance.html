@@ -68,6 +68,7 @@
 </form>
 
 <script>
+
     document.addEventListener('DOMContentLoaded', function() {
         var attendanceData = {{ attendance_data|safe }};
 
@@ -100,11 +101,9 @@
             // Serialize the Handsontable data
             var attendanceData = hot.getData();
 
-            console.log("Attendance Data: ", attendanceData);
-
-            var filteredData = attendanceData.filter(function(row) {
-                return row[2] === true || row[3] === true;  // Only include rows where either Short or Long is checked
-            });            
+            // var filteredData = attendanceData.filter(function(row) {
+            //    return row[2] === true || row[3] === true;  // Only include rows where either Short or Long is checked
+            // });            
 
             // Check if there is any data to submit
             // if (filteredData.length === 0) {
@@ -112,7 +111,7 @@
             //    return;
             //}
 
-            document.getElementById('attendanceData').value = JSON.stringify(filteredData);
+            document.getElementById('attendanceData').value = JSON.stringify(attendanceData);
 
             // Submit the form
             this.submit();

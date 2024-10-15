@@ -3,8 +3,9 @@ from .models import *
 
 @admin.register(Member)
 class MemberAdmin(admin.ModelAdmin):
-    list_display = ('first_name', 'last_name', 'email')
+    list_display = ('first_name', 'last_name', 'email', 'overdue_balance')
     search_fields = ('first_name', 'last_name', 'email')
+    ordering = ('first_name', 'last_name')
 
 @admin.register(MonthPeriod)
 class MonthPeriodAdmin(admin.ModelAdmin):

@@ -8,7 +8,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         excel_file = './attendance/data/attendance_24_25.xlsx'  # You need to adjust this path
         
-        df = pd.read_excel(excel_file, sheet_name='September')
+        df = pd.read_excel(excel_file, sheet_name='October (2)')
 
         # Iterate through the rows in the DataFrame
         for index, row in df.iterrows():
@@ -17,6 +17,9 @@ class Command(BaseCommand):
                 first_name = row['first_name']
                 last_name = row['surname'] if pd.notna(row['surname']) else None
                 email = row['email'] if pd.notna(row['email']) else None
+                if email is None and Member.objects.filter(first_name=first_name).exists():
+                    self.stdout.write(self.style.WARNING(f"Unregistered member {first_name} already exists"))
+                    continue
                 if Member.objects.filter(email=email).exists() and email is not None:
                     self.stdout.write(self.style.WARNING(f"Member with email {email} already exists"))
                     continue

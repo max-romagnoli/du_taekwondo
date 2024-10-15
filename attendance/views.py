@@ -27,13 +27,14 @@ def take_attendance(request, session_id):
                 did_short = row[2]  # Checkbox value for "Did Short"
                 did_long = row[3]   # Checkbox value for "Did Long"
 
+                print(attendance_data)
+
                 # If both are checked, only "Did Long" is valid
                 if did_short and did_long:
                     did_short = False
                     did_long = True
 
-                # Check if the total_money is passed manually or use checkbox logic
-                total_money = float(row[4]) if len(row) > 4 and row[4] is not None else 0
+                total_money = 0
                 if not total_money:
                     # If no total_money is passed, calculate it based on checkboxes
                     if did_short:
