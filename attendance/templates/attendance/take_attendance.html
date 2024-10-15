@@ -17,17 +17,16 @@
 
         #attendanceTableContainer {
             width: 100%;
-            overflow-x: auto;  /* Enable horizontal scrolling */
+            overflow-x: auto;
             margin-bottom: 20px;
         }
 
         #attendanceTable {
             width: 100%;
-            /* min-width: 600px; */  /* Ensure the table doesn't collapse too much on smaller screens */
-            border: 1px solid #ccc;  /* Optional, to visualize the table borders */
+            /* min-width: 600px;*/
+            border: 1px solid #ccc;
         }
 
-        /* Button styles */
         button {
             font-size: 1rem;
             padding: 10px 20px;
@@ -42,16 +41,15 @@
             background-color: #45a049;
         }
 
-        /* Responsive adjustments for mobile */
         @media only screen and (max-width: 600px) {
             #attendanceTable {
-                font-size: 0.8rem;  /* Reduce font size on smaller screens */
+                font-size: 0.8rem;
             }
 
             button {
                 width: 100%;
                 font-size: 1.2rem;
-                padding: 15px;  /* Larger, finger-friendly button */
+                padding: 15px;
             }
         }
     </style>
@@ -62,7 +60,9 @@
 
 <form id="attendanceForm" method="post">
     {% csrf_token %}
-    <div id="attendanceTable"></div>
+    <div id="attendanceTableContainer">
+        <div id="attendanceTable"></div>  <!-- Handsontable will be rendered here -->
+    </div>
     <input type="hidden" name="attendance_data" id="attendanceData">
     <button type="submit">Save Attendance</button>
 </form>
@@ -70,18 +70,17 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         var attendanceData = {{ attendance_data|safe }};
-        console.log("Initial Attendance Data: ", attendanceData);
-        var sessionRate = 10;  // Define the rate per session
 
         var container = document.getElementById('attendanceTable');
         var hot = new Handsontable(container, {
             licenseKey: 'non-commercial-and-evaluation',
             data: attendanceData,
-            colHeaders: ['ID', 'Member Name', 'Total Money'],
+            colHeaders: ['ID', 'Member Name', 'Short', 'Long'],
             columns: [
-                { data: 0, type: 'text', readOnly: true },  // Member ID (hidden, but required for submission)
+                { data: 0, type: 'text', readOnly: true },  // Member ID (read-only)
                 { data: 1, type: 'text', readOnly: true },  // Combined First and Last Name (read-only)
-                { data: 2, type: 'numeric' }  // Total money to be input by the admin
+                { data: 2, type: 'checkbox' },  // Checkbox for Short session
+                { data: 3, type: 'checkbox' }  // Checkbox for Long session
             ],
             columnSorting: true,  // Enable sorting for all columns
             sortIndicator: true,  // Show the sorting indicator
@@ -104,14 +103,14 @@
             console.log("Attendance Data: ", attendanceData);
 
             var filteredData = attendanceData.filter(function(row) {
-                return row[2] > 0;  // Only include rows where total_money > 0
-            });
+                return row[2] === true || row[3] === true;  // Only include rows where either Short or Long is checked
+            });            
 
             // Check if there is any data to submit
-            if (filteredData.length === 0) {
-                alert("No data to submit. All entries have total money set to 0.");
-                return;
-            }
+            // if (filteredData.length === 0) {
+            //    alert("No data to submit. All entries have total money set to 0.");
+            //    return;
+            //}
 
             document.getElementById('attendanceData').value = JSON.stringify(filteredData);
 

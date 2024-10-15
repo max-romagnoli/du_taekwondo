@@ -5,6 +5,7 @@ class Member(models.Model):
     last_name = models.CharField(max_length=100, null=True)
     email = models.EmailField(null=True, blank=True)
     overdue_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    registration_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = ['first_name', 'last_name', 'email']
@@ -42,6 +43,8 @@ class MemberSessionLink(models.Model):
 
     member = models.ForeignKey('Member', on_delete=models.CASCADE)
     session = models.ForeignKey('Session', on_delete=models.CASCADE)
+    did_short = models.BooleanField(default=False)
+    did_long = models.BooleanField(default=False)
     total_money = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:

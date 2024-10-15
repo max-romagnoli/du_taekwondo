@@ -17,6 +17,9 @@ class Command(BaseCommand):
                 first_name = row['first_name']
                 last_name = row['surname'] if pd.notna(row['surname']) else None
                 email = row['email'] if pd.notna(row['email']) else None
+                if Member.objects.filter(email=email).exists() and email is not None:
+                    self.stdout.write(self.style.WARNING(f"Member with email {email} already exists"))
+                    continue
                 member, created = Member.objects.get_or_create(
                     first_name=first_name,
                     last_name=last_name,

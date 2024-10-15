@@ -24,7 +24,8 @@ class SessionAdmin(admin.ModelAdmin):
 
 @admin.register(MemberSessionLink)
 class MemberSessionAdmin(admin.ModelAdmin):
-    list_display = ('member', 'session', 'total_money')
+    list_display = ('member', 'session', 'did_short', 'did_long', 'total_money')
+    list_filter = ('did_short', 'did_long')
     search_fields = ('member__first_name', 'member__last_name', 'session__date')
 
 @admin.register(Payment)
