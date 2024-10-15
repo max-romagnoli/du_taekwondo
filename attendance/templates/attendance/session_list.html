@@ -16,7 +16,7 @@
         }
 
         .session-list li {
-            margin-bottom: 10px;
+            margin-bottom: 30px;
         }
 
         .session-link {
@@ -42,7 +42,7 @@
     {% for session in sessions %}
     <li>
         <a href="{% url 'take_attendance' session.id %}" class="session-link">
-            {{ session.date }} ({{ session.month_period }})
+            {{ session.date|date:"D, j F Y" }}
         </a>
     </li>
     {% endfor %}

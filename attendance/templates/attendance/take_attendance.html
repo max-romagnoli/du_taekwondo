@@ -52,6 +52,33 @@
                 padding: 15px;
             }
         }
+
+        input[type="checkbox"] {
+            transform: scale(2.4);      
+            -webkit-transform: scale(2.4);  
+            -moz-transform: scale(2.4);     
+            -ms-transform: scale(2.4);   
+            -o-transform: scale(2.4);    
+            margin: 10px;  
+            align-self: center;
+        }
+
+        .handsontable td {
+            padding: 5px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .handsontable th {
+            font-weight: bold;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .handsontable {
+            
+        }
+
     </style>
 </head>
 <body>
@@ -61,7 +88,7 @@
 <form id="attendanceForm" method="post">
     {% csrf_token %}
     <div id="attendanceTableContainer">
-        <div id="attendanceTable"></div>  <!-- Handsontable will be rendered here -->
+        <div id="attendanceTable"></div>  <!-- Handsontable -->
     </div>
     <input type="hidden" name="attendance_data" id="attendanceData">
     <button type="submit">Save Attendance</button>
@@ -78,29 +105,31 @@
             data: attendanceData,
             colHeaders: ['ID', 'Member Name', 'Short', 'Long'],
             columns: [
-                { data: 0, type: 'text', readOnly: true },  // Member ID (read-only)
-                { data: 1, type: 'text', readOnly: true },  // Combined First and Last Name (read-only)
-                { data: 2, type: 'checkbox' },  // Checkbox for Short session
-                { data: 3, type: 'checkbox' }  // Checkbox for Long session
+                { data: 0, type: 'text', readOnly: true },
+                { data: 1, type: 'text', readOnly: true },
+                { data: 2, type: 'checkbox' },
+                { data: 3, type: 'checkbox' }
             ],
-            columnSorting: true,  // Enable sorting for all columns
-            sortIndicator: true,  // Show the sorting indicator
+            columnSorting: true,
+            sortIndicator: true,
             initialSort: [
-                { column: 1, sortOrder: 'asc' }  // Sort by the "Member Name" column (column index 1) in ascending order
+                { column: 1, sortOrder: 'asc' }  // Sort by the "Member Name"
             ],
             width: '100%',
             height: 'auto',
-            stretchH: 'all',  // Stretch columns to fill the table width
+            //stretchH: 'all',  // Stretch columns to fill the table width
             observeDOMVisibility: true,
+            rowHeights: 40,
         });
 
         // Submit form data
         document.getElementById('attendanceForm').addEventListener('submit', function(event) {
             event.preventDefault();
 
-            // Serialize the Handsontable data
+            // Get the data from Handsontable
             var attendanceData = hot.getData();
 
+            // TODO: Implement filtering
             // var filteredData = attendanceData.filter(function(row) {
             //    return row[2] === true || row[3] === true;  // Only include rows where either Short or Long is checked
             // });            
@@ -113,7 +142,6 @@
 
             document.getElementById('attendanceData').value = JSON.stringify(attendanceData);
 
-            // Submit the form
             this.submit();
         });
     });
