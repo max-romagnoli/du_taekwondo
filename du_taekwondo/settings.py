@@ -34,6 +34,7 @@ ALLOWED_HOSTS = [
     'localhost',  # Keep this if you're testing locally
 ]
 
+LOGIN_URL = '/admin/login/'
 
 # Application definition
 

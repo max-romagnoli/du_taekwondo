@@ -3,7 +3,9 @@ from django.http import JsonResponse
 from attendance.models import Session, MemberSessionLink, Member
 from django.utils.safestring import mark_safe
 import json
+from django.contrib.auth.decorators import login_required
 
+@login_required
 def session_list(request):
     # Fetch all sessions, or you can filter them based on your needs
     sessions = Session.objects.all()
