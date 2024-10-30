@@ -98,6 +98,7 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         var attendanceData = {{ attendance_data|safe }};
+        var modifiedData = [];
 
         var container = document.getElementById('attendanceTable');
         var hot = new Handsontable(container, {
@@ -120,6 +121,31 @@
             //stretchH: 'all',  // Stretch columns to fill the table width
             observeDOMVisibility: true,
             rowHeights: 40,
+            afterChange: function(changes, source) {
+                if (source === 'loadData') return;
+
+                changes.forEach(function(change) {
+                    const row = change[0];
+                    const rowData = hot.getDataAtRow(row);
+
+                    if (change[1] === 2 || change[1] === 3) {
+                        const modifiedEntry = {
+                            member_id: rowData[0],
+                            member_name: rowData[1],
+                            did_short: rowData[2],
+                            did_long: rowData[3]
+                        };
+
+                        // Update modifiedData array to prevent duplicates
+                        const existingIndex = modifiedData.findIndex(entry => entry.member_id === modifiedEntry.member_id);
+                        if (existingIndex > -1) {
+                            modifiedData[existingIndex] = modifiedEntry;
+                        } else {
+                            modifiedData.push(modifiedEntry);
+                        }
+                    }
+                });
+            }
         });
 
         // Submit form data
@@ -129,19 +155,12 @@
             // Get the data from Handsontable
             var attendanceData = hot.getData();
 
-            // TODO: Implement filtering
-            // var filteredData = attendanceData.filter(function(row) {
-            //    return row[2] === true || row[3] === true;  // Only include rows where either Short or Long is checked
-            // });            
-
-            // Check if there is any data to submit
-            // if (filteredData.length === 0) {
-            //    alert("No data to submit. All entries have total money set to 0.");
-            //    return;
-            //}
-
-            document.getElementById('attendanceData').value = JSON.stringify(attendanceData);
-
+            if (modifiedData.length === 0) {
+                alert("No changes to submit.");
+                return;
+            }
+            
+            document.getElementById('attendanceData').value = JSON.stringify(modifiedData);
             this.submit();
         });
     });

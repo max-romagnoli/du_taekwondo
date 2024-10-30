@@ -1,5 +1,7 @@
 from django.db import models
 from decimal import Decimal
+from django.db.models import Sum
+from django.utils import timezone
 
 class Member(models.Model):
     first_name = models.CharField(max_length=100)
@@ -68,9 +70,11 @@ class MemberSessionLink(models.Model):
 class Payment(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE)
     month_period = models.ForeignKey(MonthPeriod, on_delete=models.SET_NULL, null=True, blank=True)         # Copyright © 2024 Iulia Negreanu
-    no_sessions = models.IntegerField(null=True, blank=True)
+    month_amount_due = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
+    month_no_sessions = models.IntegerField(null=True, blank=True)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    amount_due = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
+    date_created = models.DateTimeField(auto_now_add=True)
+    date_paid = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f'{self.member} - Payment for {self.month_period}'
@@ -78,15 +82,17 @@ class Payment(models.Model):
     class Meta:
         unique_together = ['member', 'month_period']
 
-    @property
-    def total_owed(self):
-        return self.amount_due - self.amount_paid
-    
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
+        # Check if payment has been made
+        if self.amount_paid > Decimal('0.00') and not self.date_paid and not self.date_paid > Decimal('0.00'):
+            self.date_paid = timezone.now()
+        
+        self.recalculate_member_balance()
 
-        total_paid = sum(payment.amount_paid for payment in Payment.objects.filter(member=self.member))
-        # total_due = sum(payment.amount_due for payment in Payment.objects.filter(member=self.member))
+    def recalculate_member_balance(self):
+        total_paid = Payment.objects.filter(member=self.member).aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+        total_money_owed = MemberSessionLink.objects.filter(member=self.member).aggregate(total=Sum('total_money'))['total'] or Decimal('0.00')
 
-        self.member.overdue_balance = self.member.overdue_balance - total_paid
+        self.member.overdue_balance = total_money_owed - total_paid
         self.member.save()

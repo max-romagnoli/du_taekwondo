@@ -28,9 +28,10 @@ class MemberSessionAdmin(admin.ModelAdmin):
     list_display = ('member', 'session', 'did_short', 'did_long', 'total_money')
     list_filter = ('did_short', 'did_long')
     search_fields = ('member__first_name', 'member__last_name', 'session__date')
+    ordering = ('-session', 'member__first_name', 'member__last_name')
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['member', 'month_period', 'amount_due', 'amount_paid',]
+    list_display = ['date_paid', 'member', 'month_period', 'month_no_sessions', 'amount_paid',]
     list_filter = ['month_period',]
     search_fields = ['member__first_name', 'member__last_name',]

@@ -1,9 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
-from attendance.models import Session, MemberSessionLink, Member
+from attendance.models import Session, MemberSessionLink, Member, Payment
 from django.utils.safestring import mark_safe
-import json
+from decimal import Decimal
 from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
 
 @login_required
 def session_list(request):
@@ -25,9 +26,9 @@ def take_attendance(request, session_id):
 
             # Process each row in the attendance data
             for row in attendance_data:
-                member_id = row[0]  # Member ID
-                did_short = row[2]  # Checkbox value for "Did Short"
-                did_long = row[3]   # Checkbox value for "Did Long"
+                member_id = row['member_id']
+                did_short = row['did_short']
+                did_long = row['did_long']
 
                 print(attendance_data)
 
@@ -46,16 +47,21 @@ def take_attendance(request, session_id):
 
                 member = get_object_or_404(Member, id=member_id)
 
-                # Create or update the MemberSessionLink
-                member_session_link, created = MemberSessionLink.objects.update_or_create(
-                    member=member,
-                    session=session,
-                    defaults={
-                        'did_short': did_short,
-                        'did_long': did_long,
-                        'total_money': total_money
-                    }
-                )
+                if did_short or did_long:
+                    MemberSessionLink.objects.update_or_create(
+                        member=member,
+                        session=session,
+                        defaults={
+                            'did_short': did_short,
+                            'did_long': did_long,
+                            'total_money': total_money
+                        }
+                    )
+                else:
+                    MemberSessionLink.objects.filter(member=member, session=session).delete()
+
+                # Recalculate overdue balance after changes
+                recalculate_overdue_balance(member)
 
         return redirect('session_list')
 
@@ -94,3 +100,15 @@ def take_attendance(request, session_id):
         'session': session,
         'attendance_data': attendance_data_json
     })
+
+
+def recalculate_overdue_balance(member):
+    # Calculate total money owed by summing all the session links for this member
+    total_money_owed = MemberSessionLink.objects.filter(member=member).aggregate(total=Sum('total_money'))['total'] or Decimal('0.00')
+    total_paid = Payment.objects.filter(member=member).aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+    
+    # Calculate the overdue amount
+    overdue_amount = total_money_owed - total_paid
+    
+    member.overdue_balance = overdue_amount
+    member.save()
