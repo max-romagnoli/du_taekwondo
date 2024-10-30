@@ -1,0 +1,65 @@
+.container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
+
+/* Desktop Table Display */
+.session-table {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+/* Table cell styling */
+.session-table th, .session-table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+/* Mobile List Display */
+.session-list {
+    display: none;
+    margin-top: 20px;
+}
+
+/* Mobile-specific styling */
+@media (max-width: 600px) {
+    /* Hide desktop table and show mobile list on small screens */
+    .session-table {
+        display: none;
+    }
+    .session-list {
+        display: block;
+    }
+
+    .session-list-item {
+        margin-bottom: 10px;
+    }
+    
+    .session-list-button {
+        padding: 12px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        cursor: pointer;
+        border-radius: 4px;
+        text-decoration: none;
+        width: 80%;
+        display: block;
+        text-align: center;
+        height: 25px;  /* Fixed height for mobile buttons */
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        font-size: 20px;
+        font-weight: 700;
+    }
+    .session-list-button:hover {
+        background-color: #45a049;
+    }
+}
