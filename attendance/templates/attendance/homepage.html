@@ -1,0 +1,56 @@
+<!-- attendance/templates/attendance/homepage.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance App Home</title>
+    {% load static %}
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #333;
+            color: #f4f4f4
+        }
+        .container {
+            text-align: center;
+            background-color: #444;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 1200px;
+        }
+        h1 {
+            font-size: 2em;
+            color: #f4f4f4;
+        }
+        a {
+            display: block;
+            margin: 10px 0;
+            font-size: 1.2em;
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        a:hover {
+            color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="{% static 'img/du_taekwondo_logo.png' %}" width="200px" alt="Logo" class="logo">
+        <h1>DU TAEKWONDO</h1>
+        <h2>Attendance</h2>
+        <a href="{% url 'session_list' %}">Take Attendance for Sessions</a>
+        <a href="{% url 'homepage' %}#">Send Payment Reminders (coming soon)</a>
+        <a href="/admin/">Admin - Database</a>
+    </div>
+</body>
+</html>

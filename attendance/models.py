@@ -21,6 +21,7 @@ class MonthPeriod(models.Model):
 
     month = models.CharField()
     year = models.PositiveIntegerField()
+    academic_year = models.CharField()
 
     class Meta:
         constraints = [

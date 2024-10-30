@@ -1,17 +1,63 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
-from attendance.models import Session, MemberSessionLink, Member, Payment
+from attendance.models import Session, MemberSessionLink, Member, Payment, MonthPeriod
 from django.utils.safestring import mark_safe
 from decimal import Decimal
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
+from django.db.models import Sum, Count, Q
+from django.utils import timezone
+
+
+@login_required
+def homepage(request):
+    return render(request, 'attendance/homepage.html')
+
 
 @login_required
 def session_list(request):
-    # Fetch all sessions, or you can filter them based on your needs
-    sessions = Session.objects.all()
-    
-    return render(request, 'attendance/session_list.html', {'sessions': sessions})
+    # Calculate the current academic year based on today's date
+    today = timezone.now()
+    if today.month >= 9:  # If month is September (9) or later
+        current_academic_year = f"{today.year}-{str(today.year + 1)[-2:]}"
+    else:  # If month is before September, we're still in the previous academic year
+        current_academic_year = f"{today.year - 1}-{str(today.year)[-2:]}"
+
+    # Get the academic year from the request or use the current academic year as default
+    academic_year = request.GET.get('academic_year', current_academic_year)
+
+    # Retrieve all distinct academic years for the dropdown
+    academic_years = MonthPeriod.objects.values_list('academic_year', flat=True).distinct().order_by('academic_year')
+
+    # Filter MonthPeriods based on selected academic year
+    month_periods = MonthPeriod.objects.filter(academic_year=academic_year)
+
+    # Group sessions by month period and annotate short and long attendee counts
+    session_data = []
+    for period in month_periods:
+        sessions = Session.objects.filter(month_period=period).annotate(
+            short_count=Count('membersessionlink', filter=Q(membersessionlink__did_short=True)),
+            long_count=Count('membersessionlink', filter=Q(membersessionlink__did_long=True))
+        )
+        session_data.append({
+            'period': period, 
+            'sessions': [
+                {
+                    'date': session.date,
+                    'day_name': session.date.strftime('%A'),  # Get day name
+                    'short_count': session.short_count,
+                    'long_count': session.long_count,
+                    'id': session.id,
+                }
+                for session in sessions
+            ]
+        })
+
+    context = {
+        'academic_years': academic_years,
+        'selected_academic_year': academic_year,
+        'session_data': session_data
+    }
+    return render(request, 'attendance/session_list.html', context)
 
 
 def take_attendance(request, session_id):
