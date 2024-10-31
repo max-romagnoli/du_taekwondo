@@ -2,6 +2,7 @@ from django.db import models
 from decimal import Decimal
 from django.db.models import Sum
 from django.utils import timezone
+from simple_history.models import HistoricalRecords
 
 class Member(models.Model):
     first_name = models.CharField(max_length=100)
@@ -50,6 +51,7 @@ class MemberSessionLink(models.Model):
     did_short = models.BooleanField(default=False)
     did_long = models.BooleanField(default=False)
     total_money = models.DecimalField(max_digits=10, decimal_places=2)
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = 'Member - Session Link'
@@ -97,3 +99,12 @@ class Payment(models.Model):
 
         self.member.overdue_balance = total_money_owed - total_paid
         self.member.save()
+
+
+class MessageTemplate(models.Model):
+    subject = models.CharField(max_length=200)
+    body = models.TextField()
+    month_period = models.ForeignKey(MonthPeriod, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    def __str__(self):
+        return f"Template for {self.month_period.month} {self.month_period.year}"

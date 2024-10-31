@@ -1,0 +1,11 @@
+<form method="post">
+    {% csrf_token %}
+    <label>Subject:</label>
+    <input type="text" name="subject" value="{{ template.subject }}" required><br>
+
+    <label>Body:</label>
+    <textarea name="body" rows="10">{{ template.body }}</textarea><br>
+    <p>Use placeholders like `{first_name}`, `{amount_due}`, and `{month}` for dynamic content.</p>
+
+    <button type="submit">Save and Preview</button>
+</form>

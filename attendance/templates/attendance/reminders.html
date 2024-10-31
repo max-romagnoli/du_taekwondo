@@ -1,0 +1,8 @@
+<h2>Select a Month Period to Send Payment Reminders</h2>
+<ul>
+    {% for period in month_periods %}
+        <li>
+            <a href="{% url 'email_setup' period.id %}">{{ period.month }} {{ period.year }} ({{ period.academic_year }})</a>
+        </li>
+    {% endfor %}
+</ul>

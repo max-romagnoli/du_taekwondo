@@ -1,7 +1,6 @@
 .container {
     width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
+    margin: 20px;
     font-family: Arial, sans-serif;
     padding: 20px;
 }
@@ -67,7 +66,6 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 25%; /* Smooth circular edges */
         cursor: pointer;
     }
 

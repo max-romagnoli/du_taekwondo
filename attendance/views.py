@@ -1,11 +1,15 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
-from attendance.models import Session, MemberSessionLink, Member, Payment, MonthPeriod
+from attendance.models import Session, MemberSessionLink, Member, Payment, MonthPeriod, MessageTemplate
 from django.utils.safestring import mark_safe
 from decimal import Decimal
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
+from attendance.utils import send_email, generate_email
+import pandas as pd
+from django.http import HttpResponse
+from django.urls import reverse
 
 
 @login_required
@@ -58,6 +62,12 @@ def session_list(request):
         'session_data': session_data
     }
     return render(request, 'attendance/session_list.html', context)
+
+
+@login_required
+def reminders(request):
+    month_periods = MonthPeriod.objects.all()
+    return render(request, 'attendance/reminders.html', {'month_periods': month_periods})
 
 
 def take_attendance(request, session_id):
@@ -158,3 +168,52 @@ def recalculate_overdue_balance(member):
     
     member.overdue_balance = overdue_amount
     member.save()
+
+
+def email_setup(request, month_period_id):
+    month_period = MonthPeriod.objects.get(id=month_period_id)
+    template, created = MessageTemplate.objects.get_or_create(
+        month_period=month_period,
+        defaults={
+            'subject': f'{month_period.month} Taekwondo Fees Reminder',
+            'body': 'Dear {first_name},\n\nOur records show an outstanding balance of {amount_due} for {month}.'
+        }
+    )
+    
+    if request.method == 'POST':
+        template.subject = request.POST['subject']
+        template.body = request.POST['body']
+        template.save()
+        return redirect(reverse('email_preview', args=[month_period_id]))
+    
+    return render(request, 'attendance/email_setup.html', {'template': template, 'month_period': month_period})
+
+def email_preview(request, month_period_id):
+    month_period = MonthPeriod.objects.get(id=month_period_id)
+    members = Member.objects.filter(overdue_balance__gt=0)
+    template = MessageTemplate.objects.get(month_period=month_period)
+    
+    email_data = []
+    for member in members:
+        message_body = generate_email(
+            template.body,
+            first_name=member.first_name,
+            amount_due=member.overdue_balance,
+            month=month_period.month
+        )
+        email_data.append({'email': member.email, 'body': message_body, 'amount_due': member.overdue_balance})
+    
+    if 'send_emails' in request.POST:
+        for data in email_data:
+            send_email(data['email'], template.subject, data['body'])
+        return HttpResponse("Emails sent!")
+    
+    # Export emails to CSV option
+    if 'export_emails' in request.POST:
+        df = pd.DataFrame(email_data)
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{month_period.month}_emails.csv"'
+        df.to_csv(path_or_buf=response, index=False)
+        return response
+    
+    return render(request, 'attendance/email_preview.html', {'email_data': email_data})
