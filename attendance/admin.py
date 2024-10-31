@@ -35,3 +35,7 @@ class PaymentAdmin(admin.ModelAdmin):
     list_display = ['date_paid', 'member', 'month_period', 'month_no_sessions', 'amount_paid',]
     list_filter = ['month_period',]
     search_fields = ['member__first_name', 'member__last_name',]
+
+@admin.register(MessageTemplate)
+class MessageTemplateAdmin(admin.ModelAdmin):
+    pass

@@ -108,3 +108,7 @@ class MessageTemplate(models.Model):
     
     def __str__(self):
         return f"Template for {self.month_period.month} {self.month_period.year}"
+    
+    class Meta:
+        verbose_name = 'Message Template'
+        verbose_name_plural = 'Message Templates'
