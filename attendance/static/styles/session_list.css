@@ -41,6 +41,42 @@
         margin-bottom: 10px;
     }
     
+    /* Collapsible section styling */
+    .collapsible-header {
+        display: flex;
+        align-items: center;
+        justify-content:flex-start;
+        color: black;
+        cursor: pointer;
+        border-radius: 8px;
+        margin-top: 30px;
+        text-align: left;
+        font-size: 20px;
+        font-weight: 700;
+        width: auto;
+        gap: 10px;
+    }
+
+    .collapsible-button {
+        background-color: lightgray;
+        border: none;
+        color: whiblackte;
+        font-size: 1.2rem;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 25%; /* Smooth circular edges */
+        cursor: pointer;
+    }
+
+    .collapsible-content {
+        display: block; /* Hide content by default */
+        margin-top: 5px;
+        width: 100%;
+    }
+
     .session-list-button {
         padding: 12px;
         background-color: #4CAF50;

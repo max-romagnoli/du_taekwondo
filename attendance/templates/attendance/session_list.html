@@ -27,7 +27,7 @@
         <!-- Desktop Table Display -->
         <div class="session-table">
             {% for entry in session_data %}
-                <h2>{{ entry.period.month }} {{ entry.period.year }} ({{ entry.period.academic_year }})</h2>
+                <h2>{{ entry.period.month }} {{ entry.period.year }}</h2>
                 <table>
                     <thead>
                         <tr>
@@ -41,8 +41,8 @@
                     <tbody>
                         {% for session in entry.sessions %}
                             <tr>
-                                <td>{{ session.day_name }}</td>
-                                <td>{{ session.date }}</td>
+                                <td>{{ session.date|date:"l" }}</td>
+                                <td>{{ session.date|date:"j F" }}</td>
                                 <td>{{ session.short_count }}</td>
                                 <td>{{ session.long_count }}</td>
                                 <td>
@@ -51,23 +51,58 @@
                             </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table>                
             {% endfor %}
         </div>
 
-        <!-- Mobile List Display -->
+        <!-- Mobile List Display with Collapsible Sections -->
         <div class="session-list">
             {% for entry in session_data %}
-                <h3>{{ entry.period.month }} {{ entry.period.year }} ({{ entry.period.academic_year }})</h3>
-                {% for session in entry.sessions %}
-                    <div class="session-list-item">
-                        <a href="{% url 'take_attendance' session.id %}" class="session-list-button">
-                            {{ session.day_name }} {{ session.date }}
-                        </a>
-                    </div>
-                {% endfor %}
+                <!-- Collapsible Header -->
+                <div class="collapsible-header">
+                    <button class="collapsible-button">-</button>
+                    {{ entry.period.month }} {{ entry.period.year }}
+                </div>
+                
+                <!-- Collapsible Content -->
+                <div class="collapsible-content">
+                    {% for session in entry.sessions %}
+                        <div class="session-list-item">
+                            <a href="{% url 'take_attendance' session.id %}" class="session-list-button">
+                                {{ session.date|date:"l j F" }}
+                            </a>
+                        </div>
+                    {% endfor %}
+                </div>
             {% endfor %}
         </div>
     </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Select all collapsible headers
+            const headers = document.querySelectorAll(".collapsible-header");
+    
+            headers.forEach(header => {
+                const button = header.querySelector(".collapsible-button");
+                const content = header.nextElementSibling;
+    
+                button.addEventListener("click", function (e) {
+                    e.stopPropagation(); // Prevent click event from bubbling up to header
+    
+                    // Toggle the display of the content
+                    if (content.style.display === "none") {
+                        content.style.display = "block";
+                        button.textContent = "-"; // Change icon to minus when expanded
+                    } else {
+                        content.style.display = "none";
+                        button.textContent = "+"; // Change icon to plus when collapsed
+                    }
+                });
+            });
+        });
+    </script>
+    
 </body>
+
 </html>
