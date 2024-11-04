@@ -11,3 +11,12 @@ def recalculate_member_balance_on_delete(sender, instance, **kwargs):
 
     instance.member.overdue_balance = total_money_owed - total_paid
     instance.member.save()
+
+@receiver(post_delete, sender=MemberSessionLink)
+def recalculate_member_balance_on_delete_session_link(sender, instance, **kwargs):
+    total_money_owed = MemberSessionLink.objects.filter(member=instance.member).aggregate(total=Sum('total_money'))['total'] or Decimal('0.00')
+
+    total_paid = Payment.objects.filter(member=instance.member).aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+
+    instance.member.overdue_balance = total_money_owed - total_paid
+    instance.member.save()

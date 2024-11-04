@@ -3,6 +3,9 @@ from decimal import Decimal
 from django.db.models import Sum
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
+from datetime import date, timedelta
+import calendar
+from django.core.validators import MinValueValidator
 
 class Member(models.Model):
     first_name = models.CharField(max_length=100)
@@ -43,6 +46,9 @@ class Session(models.Model):
     def __str__(self):
         return f"Session on {self.date} ({self.month_period})"
     
+    class Meta:
+        unique_together = ('date', 'month_period')
+    
 
 class MemberSessionLink(models.Model):
 
@@ -78,6 +84,7 @@ class Payment(models.Model):
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     date_created = models.DateTimeField(auto_now_add=True)
     date_paid = models.DateTimeField(null=True, blank=True)
+    validators=[MinValueValidator(0.00)]
 
     def __str__(self):
         return f'{self.member} - Payment for {self.month_period}'
@@ -88,7 +95,7 @@ class Payment(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         # Check if payment has been made
-        if self.amount_paid > Decimal('0.00') and not self.date_paid and not self.date_paid > Decimal('0.00'):
+        if self.amount_paid > Decimal('0.00') and not self.date_paid:
             self.date_paid = timezone.now()
         
         self.recalculate_member_balance()
@@ -101,7 +108,43 @@ class Payment(models.Model):
         self.member.save()
 
 
+class MessageType(models.Model):
+    MESSAGE_TYPES = [
+        ('current_month', 'Member Attended Sessions in Month'),
+        ('current_month_overdue', 'Member Attended Sessions in Month + Overdue'),
+        ('no_sessions', 'Member Did Not Attend Sessions in Month'),
+        ('no_sessions_overdue', 'Member Did Not Attend Sessions in Month + Overdue'),
+        ('other', 'Other')
+    ]
+
+    type = models.CharField(max_length=50, choices=MESSAGE_TYPES, unique=True)
+    display_name = models.CharField(max_length=100)
+    default_body = models.TextField()
+
+    def __str__(self):
+        return self.display_name
+    
+    class Meta:
+        verbose_name = 'Message Type'
+        verbose_name_plural = 'Message Types'
+
+
 class MessageTemplate(models.Model):
+    month_period = models.ForeignKey('MonthPeriod', on_delete=models.SET_NULL, null=True, blank=True)
+    message_type = models.ForeignKey(MessageType, on_delete=models.CASCADE)
+    short_title = models.CharField(max_length=50)
+    subject = models.CharField(max_length=255)
+    body = models.TextField()
+
+    def __str__(self):
+        return f'{self.month_period} - {self.message_type.display_name}'
+
+    class Meta:
+        verbose_name = 'Message Template'
+        verbose_name_plural = 'Message Templates'
+
+
+""" class MessageTemplate(models.Model):
     subject = models.CharField(max_length=200)
     body = models.TextField()
     month_period = models.ForeignKey(MonthPeriod, on_delete=models.SET_NULL, null=True, blank=True)
@@ -111,4 +154,4 @@ class MessageTemplate(models.Model):
     
     class Meta:
         verbose_name = 'Message Template'
-        verbose_name_plural = 'Message Templates'
+        verbose_name_plural = 'Message Templates' """

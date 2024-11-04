@@ -1,11 +1,111 @@
-<form method="post">
-    {% csrf_token %}
-    <label>Subject:</label>
-    <input type="text" name="subject" value="{{ template.subject }}" required><br>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Setup for {{ month_period }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            background-color: #f4f4f4;
+        }
+        .container {
+            margin: 20px auto;
+            max-width: 900px;
+            flex-grow: 1;
+        }
+        .template-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        textarea {
+            resize: vertical;
+            height: 150px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .fixed-sidebar {
+            width: 250px;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .fixed-sidebar h3 {
+            margin: 0 0 10px;
+            font-size: 1.2em;
+        }
+        .fixed-sidebar code {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            background-color: #f9f9f9;
+            padding: 3px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Email Setup for {{ month_period }}</h2>
+        <form method="post">
+            {% csrf_token %}
+            {% for template in templates %}
+                <div class="template-section">
+                    <h3>{{ template.message_type.display_name }}</h3>
+                    <label for="{{ template.message_type.type }}_subject">Subject:</label>
+                    <input type="text" id="{{ template.message_type.type }}_subject" name="{{ template.message_type.type }}_subject" value="{{ template.subject }}">
 
-    <label>Body:</label>
-    <textarea name="body" rows="10">{{ template.body }}</textarea><br>
-    <p>Use placeholders like `{first_name}`, `{amount_due}`, and `{month}` for dynamic content.</p>
-
-    <button type="submit">Save and Preview</button>
-</form>
+                    <label for="{{ template.message_type.type }}_body">Body:</label>
+                    <textarea id="{{ template.message_type.type }}_body" name="{{ template.message_type.type }}_body">{{ template.body }}</textarea>
+                </div>
+            {% endfor %}
+            <button type="submit">Save and Preview</button>
+        </form>
+    </div>
+    <div class="fixed-sidebar">
+        <h3>Available Keywords</h3>
+        <code>{first_name}</code>
+        <code>{month}</code>
+        <code>{number_sessions}</code>
+        <code>{month_amount_due}</code>
+        <code>{previous_amount_due}</code>
+        <code>{total_overdue}</code>
+    </div>
+</body>
+</html>

@@ -1,4 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Preview</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 20px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        td pre {
+            white-space: pre-wrap; /* Ensures text wraps inside the table */
+            word-wrap: break-word; /* Ensures long words break and do not overflow */
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 1em;
+            display: inline-block;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        form {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
 <h2>Email Preview for {{ month_period.month }} {{ month_period.year }}</h2>
+
 <form method="post">
     {% csrf_token %}
     <table>
@@ -6,7 +71,10 @@
             <tr>
                 <th>Email</th>
                 <th>Message</th>
-                <th>Outstanding Balance</th>
+                <th>Number of Sessions</th>
+                <th>Month Amount (€)</th>
+                <th>Previous Overdue Amount (€)</th>
+                <th><strong>Total Due Balance (€)</strong></th>
             </tr>
         </thead>
         <tbody>
@@ -14,11 +82,17 @@
                 <tr>
                     <td>{{ data.email }}</td>
                     <td><pre>{{ data.body }}</pre></td>
-                    <td>{{ data.amount_due }}</td>
+                    <td>{{ data.number_sessions }}</td>
+                    <td>{{ data.month_amount_due|floatformat:2 }}</td>
+                    <td>{{ data.previous_amount_due|floatformat:2 }}</td>
+                    <td><strong>{{ data.total_overdue|floatformat:2 }}</strong></td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
-    <button type="submit" name="send_emails" disabled>Send Emails</button>
+    {% comment %} <button type="submit" name="send_emails" disabled>Send Emails</button> {% endcomment %}
     <button type="submit" name="export_emails">Export Emails to CSV</button>
 </form>
+
+</body>
+</html>

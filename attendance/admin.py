@@ -1,11 +1,21 @@
 from django.contrib import admin
 from .models import *
 
+class MemberPaymentInline(admin.TabularInline):
+    model = Payment
+    extra = 1
+
+class MemberSessionLinkInline(admin.TabularInline):
+    model = MemberSessionLink
+    extra = 1 
+
 @admin.register(Member)
 class MemberAdmin(admin.ModelAdmin):
     list_display = ('first_name', 'last_name', 'email', 'overdue_balance')
     search_fields = ('first_name', 'last_name', 'email')
     ordering = ('first_name', 'last_name')
+
+    inlines = [MemberSessionLinkInline, MemberPaymentInline]
 
 @admin.register(MonthPeriod)
 class MonthPeriodAdmin(admin.ModelAdmin):
@@ -38,4 +48,8 @@ class PaymentAdmin(admin.ModelAdmin):
 
 @admin.register(MessageTemplate)
 class MessageTemplateAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(MessageType)
+class MessageTypeAdmin(admin.ModelAdmin):
     pass
