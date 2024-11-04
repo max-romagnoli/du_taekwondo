@@ -44,7 +44,7 @@ def session_list(request):
         sessions = Session.objects.filter(month_period=period).annotate(
             short_count=Count('membersessionlink', filter=Q(membersessionlink__did_short=True)),
             long_count=Count('membersessionlink', filter=Q(membersessionlink__did_long=True))
-        )
+        ).order_by('date')
         session_data.append({
             'period': period, 
             'sessions': [
