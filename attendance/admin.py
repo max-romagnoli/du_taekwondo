@@ -42,7 +42,7 @@ class MemberSessionAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['date_paid', 'member', 'month_period', 'month_no_sessions', 'amount_paid',]
+    list_display = ['date_paid', 'member', 'month_period', 'month_no_sessions', 'month_amount_due', 'amount_paid',]
     list_filter = ['month_period',]
     search_fields = ['member__first_name', 'member__last_name',]
 

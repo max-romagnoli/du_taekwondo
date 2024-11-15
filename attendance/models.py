@@ -1,6 +1,6 @@
 from django.db import models
 from decimal import Decimal
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
 from datetime import date, timedelta
@@ -52,7 +52,7 @@ class Session(models.Model):
 
 class MemberSessionLink(models.Model):
 
-    member = models.ForeignKey('Member', on_delete=models.CASCADE)
+    member = models.ForeignKey('Member', on_delete=models.CASCADE, related_name='session_links')
     session = models.ForeignKey('Session', on_delete=models.CASCADE)
     did_short = models.BooleanField(default=False)
     did_long = models.BooleanField(default=False)
@@ -77,7 +77,7 @@ class MemberSessionLink(models.Model):
     
 
 class Payment(models.Model):
-    member = models.ForeignKey(Member, on_delete=models.CASCADE)
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='payments')
     month_period = models.ForeignKey(MonthPeriod, on_delete=models.SET_NULL, null=True, blank=True)         # Copyright © 2024 Iulia Negreanu
     month_amount_due = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
     month_no_sessions = models.IntegerField(null=True, blank=True)
@@ -93,12 +93,19 @@ class Payment(models.Model):
         unique_together = ['member', 'month_period']
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        # Check if payment has been made
-        if self.amount_paid > Decimal('0.00') and not self.date_paid:
-            self.date_paid = timezone.now()
-        
+        member_sessions = MemberSessionLink.objects.filter(
+            member=self.member,
+            session__month_period=self.month_period
+        ).filter(Q(did_short=True) | Q(did_long=True))
+
+        self.month_no_sessions = member_sessions.count()
+        self.month_amount_due = Decimal(sum(
+            2.00 if session.did_short else 3.00 if session.did_long else 0.00 for session in member_sessions
+        ))
+
         self.recalculate_member_balance()
+
+        super().save(*args, **kwargs)
 
     def recalculate_member_balance(self):
         total_paid = Payment.objects.filter(member=self.member).aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')

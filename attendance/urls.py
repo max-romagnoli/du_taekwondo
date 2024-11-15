@@ -10,4 +10,5 @@ urlpatterns = [
     path('reminders/preview/<int:month_period_id>/', views.email_preview, name='email_preview'),
     path('payment-entry/', views.month_list, name='payment_entry'),
     path('payment-entry/<int:month_period_id>/', views.member_payment_entry, name='member_payment_entry'),
+    path('member-records/', views.member_records, name='member_records'),
 ]

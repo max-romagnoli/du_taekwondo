@@ -59,11 +59,16 @@
                 </tr>
             </thead>
             <tbody>
-                {% for member in members %}
+                {% for data in member_data %}
                     <tr>
-                        <td>{{ member.first_name }} {{ member.last_name }}</td>
-                        <td>{{ member.overdue_balance }}</td>
-                        <td><input type="number" name="payment_{{ member.id }}" step="0.01"></td>
+                        <td>{{ data.member.first_name }} {{ data.member.last_name }}</td>
+                        <td>{{ data.overdue_balance }}</td>
+                        <td>
+                            <input type="number" 
+                                   name="payment_{{ data.member.id }}" 
+                                   step="0.01"
+                                   value="{{ data.amount_paid }}">
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>

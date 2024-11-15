@@ -4,7 +4,7 @@ from attendance.models import Session, MemberSessionLink, Member, Payment, Month
 from django.utils.safestring import mark_safe
 from decimal import Decimal
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum, Count, Q, Case, When, IntegerField
+from django.db.models import Sum, Count, F, Q, Case, When, IntegerField, DecimalField, Prefetch
 from django.utils import timezone
 from attendance.utils import send_email
 import pandas as pd
@@ -71,6 +71,53 @@ def session_list(request):
 def reminders(request):
     month_periods = MonthPeriod.objects.all()
     return render(request, 'attendance/reminders.html', {'month_periods': month_periods})
+
+@login_required
+def member_records(request):
+    today = timezone.now()
+    if today.month >= 9:
+        current_academic_year = f"{today.year}-{str(today.year + 1)[-2:]}"
+    else:
+        current_academic_year = f"{today.year - 1}-{str(today.year)[-2:]}"
+
+    selected_academic_year = request.GET.get('academic_year', current_academic_year)
+
+    academic_years = MonthPeriod.objects.values_list('academic_year', flat=True).distinct().order_by('academic_year')
+
+    month_periods = MonthPeriod.objects.filter(academic_year=selected_academic_year).order_by('id')
+
+    members = Member.objects.prefetch_related(
+        Prefetch(
+            'payments',
+            queryset=Payment.objects.filter(month_period__in=month_periods),
+            to_attr='filtered_payments'
+        )
+    ).order_by('first_name', 'last_name')
+
+    member_data = []
+    for member in members:
+        row = {'member': member, 'payments': []}
+        for month in month_periods:
+            payment = next(
+                (p for p in member.filtered_payments if p.month_period == month),
+                None
+            )
+            if payment:
+                row['payments'].append({
+                    'month_amount_due': payment.month_amount_due,
+                    'month_no_sessions': payment.month_no_sessions,
+                    'amount_paid': payment.amount_paid,
+                })
+            else:
+                row['payments'].append(None)  # No payment registered
+        member_data.append(row)
+
+    return render(request, 'attendance/member_records.html', {
+        'academic_years': academic_years,
+        'selected_academic_year': selected_academic_year,
+        'month_periods': month_periods,
+        'member_data': member_data,
+    })
 
 
 def take_attendance(request, session_id):
@@ -255,12 +302,37 @@ def email_preview(request, month_period_id):
         attended_sessions = member_sessions.count()
 
         # TODO: add a configuration model
-        month_amount_due = Decimal(sum(2.00 if session.did_short else 3.00 if session.did_long else 0.00 for session in member_sessions))
+        # Calculate amount due based on sessions attended this month
+        gross_month_amount_due = Decimal(sum(
+            2.00 if session.did_short else 3.00 if session.did_long else 0.00 for session in member_sessions
+        ))
+
+        # Get any payments made for the current month
+        total_paid_this_month = Payment.objects.filter(
+            member=member,
+            month_period=month_period
+        ).aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+
+        # Calculate the net amount due for the current month
+        month_amount_due = gross_month_amount_due - total_paid_this_month
+
+        payment, created = Payment.objects.update_or_create(
+            member=member,
+            month_period=month_period,
+            defaults={'month_amount_due': month_amount_due}
+        )
+
+        previous_amount_due = Payment.objects.filter(
+            member=member,
+            month_period__year__lte=month_period.year,
+            month_period__month__lt=month_period.month
+        ).aggregate(
+            unpaid_total=Sum(F('month_amount_due') - F('amount_paid'), output_field=DecimalField())
+        )['unpaid_total'] or Decimal('0.00')
 
         # TODO: gets total also from next months
         # total_overdue = calculate_overdue_up_to_current_month(member, month_period)
-        total_overdue = member.overdue_balance
-        previous_amount_due = total_overdue - month_amount_due
+        total_overdue = previous_amount_due + month_amount_due
 
         # Choose the appropriate template based on attendance and balance
         template = None
@@ -317,7 +389,46 @@ def month_list(request):
     months = MonthPeriod.objects.all()
     return render(request, 'attendance/month_list.html', {'months': months})
 
-def member_payment_entry(request, month_period_id):
+""" def member_payment_entry(request, month_period_id):
+    month_period = get_object_or_404(MonthPeriod, id=month_period_id)
+    members = Member.objects.all().order_by('first_name', 'last_name')
+
+    # Calculate overdue balance up to the current month for each member
+    member_data = []
+    for member in members:
+        if not Payment.objects.filter(member=member, month_period=month_period).exists():
+            payment = create_payment(member, month_period)
+
+        overdue_balance = calculate_overdue_up_to_month(member, month_period)
+        if overdue_balance > 0:
+            amount_paid = Payment.objects.filter(
+                member=member,
+                month_period=month_period
+            ).aggregate(total=Sum('amount_paid'))['total'] or Decimal
+            member_data.append({
+                'member': member,
+                'overdue_balance': overdue_balance,
+                'amount_paid': amount_paid
+            })
+
+    if request.method == 'POST':
+        for data in member_data:
+            member = data['member']
+            amount_paid = request.POST.get(f'payment_{member.id}')
+            if amount_paid:
+                Payment.objects.update_or_create(
+                    member=member,
+                    month_period=month_period,
+                    defaults={'amount_paid': float(amount_paid)}
+                )
+        return redirect('month_list')
+
+    return render(request, 'attendance/member_payment_entry.html', {
+        'month_period': month_period,
+        'member_data': member_data,  # Pass member data with calculated overdue balance
+    }) """
+
+""" def member_payment_entry(request, month_period_id):
     month_period = get_object_or_404(MonthPeriod, id=month_period_id)
     members = Member.objects.filter(overdue_balance__gt=0).order_by('first_name', 'last_name')
 
@@ -340,7 +451,7 @@ def member_payment_entry(request, month_period_id):
         'month_period': month_period,
         'members': members,
         'payment_dict': payment_dict  # Pass the dictionary of existing payments to the template
-    })
+    }) """
 
 
 
@@ -398,22 +509,152 @@ def send_email(receiver_email, subject, body):
     except Exception as e:
         print(f'Failed to send email: {e}')
 
-
-def calculate_overdue_up_to_current_month(member, month_period):
-
-    total_money_owed = MemberSessionLink.objects.filter(
+""" # TODO:
+def calculate_overdue_up_to_month(member, month_period):
+    previous_amount_due = Payment.objects.filter(
         member=member,
-        session__month_period__year__lte=month_period.year,
-        session__month_period__month__lte=month_period.month
-    ).aggregate(total=Sum('total_money'))['total'] or Decimal('0.00')
+        month_period__id__lt=month_period.id,
+    ).aggregate(
+        unpaid_total=Sum(F('month_amount_due') - F('amount_paid'), output_field=DecimalField())
+    )['unpaid_total'] or Decimal('0.00')
 
-    total_paid = Payment.objects.filter(
+    current_month_amount_due = Payment.objects.filter(
         member=member,
-        month_period__year__lte=month_period.year,
-        month_period__month__lte=month_period.month
+        month_period=month_period
+    ).aggregate(
+        unpaid_total=Sum(F('month_amount_due') - F('amount_paid'), output_field=DecimalField())
+    )['unpaid_total'] or Decimal('0.00')
+
+    total_overdue = previous_amount_due + current_month_amount_due
+
+    return max(total_overdue, Decimal('0.00'))
+
+
+def create_payment(member, month_period):
+
+    member_sessions = MemberSessionLink.objects.filter(
+            member=member,
+            session__month_period=month_period
+        ).filter(
+            Q(did_short=True) | Q(did_long=True)
+        )
+
+    gross_month_amount_due = Decimal(sum(
+        2.00 if session.did_short else 3.00 if session.did_long else 0.00 for session in member_sessions
+    ))
+    # Get any payments made for the current month
+    total_paid_this_month = Payment.objects.filter(
+        member=member,
+        month_period=month_period
     ).aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+    # Calculate the net amount due for the current month
+    month_amount_due = gross_month_amount_due - total_paid_this_month
 
-    total_overdue = total_money_owed - total_paid
+    payment, created = Payment.objects.update_or_create(
+        member=member,
+        month_period=month_period,
+        defaults={'month_amount_due': month_amount_due}
+    )
 
-    print(total_overdue)
-    return total_overdue
+    return payment """
+
+
+def member_payment_entry(request, month_period_id):
+    month_period = get_object_or_404(MonthPeriod, id=month_period_id)
+    members = Member.objects.prefetch_related(
+        Prefetch(
+            'payments',
+            queryset=Payment.objects.filter(month_period=month_period),
+            to_attr='current_month_payments'
+        ),
+        Prefetch(
+            'session_links',
+            queryset=MemberSessionLink.objects.select_related('session')
+        )
+    ).order_by('first_name', 'last_name')
+
+    # Pre-compute payments and overdue balances for members
+    member_data = [
+        get_member_payment_data(member, month_period)
+        for member in members
+    ]
+
+    # Handle form submission
+    if request.method == 'POST':
+        process_payment_form(request, member_data, month_period)
+        return redirect('payment_entry')
+
+    return render(request, 'attendance/member_payment_entry.html', {
+        'month_period': month_period,
+        'member_data': [data for data in member_data if data['overdue_balance'] > 0],  # Only show members with overdue balances
+    })
+
+
+def get_member_payment_data(member, month_period):
+    """
+    Helper function to compute payment and overdue balance for a member.
+    """
+    # Create payment entry if not already exists
+    payment = Payment.objects.filter(member=member, month_period=month_period).first()
+    if not payment:
+        payment = create_payment(member, month_period)
+
+    overdue_balance = calculate_overdue_up_to_month(member, month_period)
+    amount_paid = payment.amount_paid if payment else Decimal('0.00')
+
+    return {
+        'member': member,
+        'overdue_balance': overdue_balance,
+        'amount_paid': amount_paid,
+    }
+
+
+def calculate_overdue_up_to_month(member, month_period):
+    """
+    Helper function to calculate overdue balance up to a specific month for a member.
+    """
+    payments = Payment.objects.filter(member=member, month_period__id__lte=month_period.id)
+    total_due = payments.aggregate(
+        total_due=Sum(F('month_amount_due') - F('amount_paid'), output_field=DecimalField())
+    )['total_due'] or Decimal('0.00')
+    return max(total_due, Decimal('0.00'))
+
+
+def create_payment(member, month_period):
+    """
+    Helper function to create a Payment object for a member for the specified month period.
+    """
+    member_sessions = MemberSessionLink.objects.filter(
+        member=member,
+        session__month_period=month_period
+    ).filter(
+        Q(did_short=True) | Q(did_long=True)
+    )
+
+    gross_month_amount_due = sum(
+        Decimal('2.00') if session.did_short else Decimal('3.00')
+        for session in member_sessions
+    )
+
+    payment, created = Payment.objects.update_or_create(
+        member=member,
+        month_period=month_period,
+        defaults={'month_amount_due': gross_month_amount_due}
+    )
+
+    return payment
+
+
+def process_payment_form(request, member_data, month_period):
+    """
+    Helper function to process payment data submitted in the form.
+    """
+    for data in member_data:
+        member = data['member']
+        amount_paid = request.POST.get(f'payment_{member.id}')
+        if amount_paid:
+            Payment.objects.update_or_create(
+                member=member,
+                month_period=month_period,
+                defaults={'amount_paid': float(amount_paid)}
+            )

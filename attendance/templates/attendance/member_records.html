@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Records</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .no-payment {
+            background-color: lightgray;
+            color: black;
+        }
+        .partial-payment {
+            background-color: #ffea99;
+            color: black;
+        }
+        .full-payment {
+            background-color: #d4edda;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <h1>Member Records</h1>
+    <h3>View on Desktop for Best Experience</h3>
+    <a href="{% url 'homepage' %}">Back to Homepage</a>
+
+    <!-- Filter by Academic Year -->
+    <form method="get" action="{% url 'member_records' %}">
+        <label for="academic_year">Academic Year:</label>
+        <select name="academic_year" id="academic_year" onchange="this.form.submit()">
+            {% for year in academic_years %}
+                <option value="{{ year }}" {% if year == selected_academic_year %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    <!-- Display Member Records -->
+    <table>
+        <thead>
+            <tr>
+                <th>Member</th>
+                {% for month in month_periods %}
+                    <th>{{ month }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in member_data %}
+                <tr>
+                    <td>{{ row.member }}</td>
+                    {% for payment in row.payments %}
+                        {% if payment %}
+                            {% if payment.amount_paid == 0 and payment.month_amount_due == 0 %}
+                                <td class="no-payment">
+                                    Due: <strong>{{ payment.month_amount_due }}</strong><br>
+                                    Paid: <strong>{{ payment.amount_paid }}</strong><br>
+                                    Sessions: <strong>{{ payment.month_no_sessions }}</strong>
+                                </td>
+                            {% elif payment.amount_paid >= payment.month_amount_due %}
+                                <td class="full-payment">
+                                    Due: <strong>{{ payment.month_amount_due }}</strong><br>
+                                    Paid: <strong>{{ payment.amount_paid }}</strong><br>
+                                    Sessions: <strong>{{ payment.month_no_sessions }}</strong>
+                                </td>
+                            {% elif payment.amount_paid >= 0 %}
+                                <td class="partial-payment">
+                                    Due: <strong>{{ payment.month_amount_due }}</strong><br>
+                                    Paid: <strong>{{ payment.amount_paid }}</strong><br>
+                                    Sessions: <strong>{{ payment.month_no_sessions }}</strong>
+                                </td>
+                            {% else %}
+                                <td class="no-payment">
+                                    Due: <strong>{{ payment.month_amount_due }}</strong><br>
+                                    Paid: <strong>0</strong><br>
+                                    Sessions: <strong>{{ payment.month_no_sessions }}</strong>
+                                </td>
+                            {% endif %}
+                        {% else %}
+                            <td class="no-payment">No payment</td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
